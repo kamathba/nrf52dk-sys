@@ -1,6 +1,6 @@
-extern crate gcc;
+extern crate cc;
 
-use gcc::Build;
+use cc::Build;
 use std::collections::{HashMap, HashSet};
 
 use std::env;
