@@ -1,4 +1,5 @@
 extern crate cc;
+extern crate bindgen;
 
 use cc::Build;
 use std::collections::{HashMap, HashSet};
@@ -175,63 +176,58 @@ fn find_system_includes() -> Vec<PathBuf> {
 }
 
 fn generate_ble(out: &PathBuf, info: &SdkInfo) {
-    // TODO version assert
 
-    let mut cmd = Command::new("bindgen");
+    static CLANG_ARGS: &[&str] = &[
+        "-nostdlib",
+        "-nostdinc",
+        "-ffreestanding",
+        "-D__CMSIS_GCC_H",
+        "-DSVCALL_AS_NORMAL_FUNCTION",
+        "-fshort-enums",
+    ];
 
-    // Bindgen Opts
-    cmd.arg("bindings.h");
-    cmd.arg("--no-doc-comments");
-    cmd.arg("--use-core");
-    cmd.arg("--ctypes-prefix=ctypes");
-    cmd.arg("--with-derive-default");
-    cmd.arg("--verbose");
-    cmd.arg("--blacklist-type");
-    cmd.arg("IRQn_Type");
-    cmd.arg("--blacklist-type");
-    cmd.arg("__va_list");
-    // This type wraps a mutable void pointer, and we cannot safely impl Copy.
-    cmd.arg("--output");
-    cmd.arg(out.join("bindings.rs"));
+    let mut search_paths = vec![format!("-I{}", out.display())];
 
-    // Clang Opts begin here
-    cmd.arg("--");
-
-    // Don't pollute the headers with the host header files.  This matters
-    // most on macOS where the headers have a lot of darwin specific things
-    cmd.arg("-nostdlib");
-    cmd.arg("-nostdinc");
-    cmd.arg("-ffreestanding");
-
-    // Probe the target compiler for its default includes
-    cmd.arg(format!("-I{}", out.display()));
     for inc in find_system_includes() {
-        cmd.arg(format!("-I{}", inc.display()));
+        search_paths.push(format!("-I{}", inc.display()));
     }
 
-    // Standard defines (common with GCC build)
+    for inc in info.dirs.iter() {
+        search_paths.push(format!("-I{}", inc.display()));
+    }
+
+    let mut defines = Vec::new();
     for &(var, oval) in DEFINES {
         match oval {
-            None => cmd.arg(format!("-D{}", var)),
-            Some(val) => cmd.arg(format!("-D{}={}", var, val)),
+            None => defines.push(format!("-D{}", var)),
+            Some(val) => defines.push(format!("-D{}={}", var, val)),
         };
     }
 
-    // Hack defines to make bindgen work
-    cmd.arg("-D__CMSIS_GCC_H");
-    cmd.arg("-DSVCALL_AS_NORMAL_FUNCTION"); // this is questionable
+    let target = env::var("TARGET").unwrap();
+    let target_args: &[&str] = &[
+        "-target",
+        &target,
+    ];
 
-    // Standard include paths (common with GCC build)
-    for inc in info.dirs.iter() {
-        cmd.arg(format!("-I{}", inc.display()));
-    }
+    let bindings = bindgen::Builder::default()
+        .header("bindings.h")
+        .use_core()
+        .ctypes_prefix("ctypes")
+        .derive_default(true)
+        .default_enum_style(bindgen::EnumVariation::ModuleConsts)
+        .blacklist_type("IRQn_Type")
+        .blacklist_type("__va_list")
+        .clang_args(CLANG_ARGS)
+        .clang_args(defines)
+        .clang_args(search_paths)
+        .clang_args(target_args)
+        .generate()
+        .expect("Unable to generate bindings");
 
-    // Final Clang args
-    cmd.arg("-fshort-enums");
-    cmd.arg("-target");
-    cmd.arg(env::var("TARGET").unwrap());
-
-    assert!(cmd.status().expect("failed to build BLE libs").success());
+    bindings
+        .write_to_file(out.join("bindings.rs"))
+        .expect("Couldn't write bindings!");
 }
 
 /// Build SRC_TO_FEAT into something using PathBufs
