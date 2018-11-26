@@ -9,6 +9,7 @@ target
 *.gdbinit
 .vscode
 *.swp
+*.map
 
 # Libraries should not check in Cargo.lock
 Cargo.lock
