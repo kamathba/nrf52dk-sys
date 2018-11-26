@@ -1,5 +1,5 @@
-extern crate cc;
 extern crate bindgen;
+extern crate cc;
 
 use cc::Build;
 use std::collections::{HashMap, HashSet};
@@ -176,7 +176,6 @@ fn find_system_includes() -> Vec<PathBuf> {
 }
 
 fn generate_ble(out: &PathBuf, info: &SdkInfo) {
-
     static CLANG_ARGS: &[&str] = &[
         "-nostdlib",
         "-nostdinc",
@@ -205,10 +204,7 @@ fn generate_ble(out: &PathBuf, info: &SdkInfo) {
     }
 
     let target = env::var("TARGET").unwrap();
-    let target_args: &[&str] = &[
-        "-target",
-        &target,
-    ];
+    let target_args: &[&str] = &["-target", &target];
 
     let bindings = bindgen::Builder::default()
         .header("bindings.h")

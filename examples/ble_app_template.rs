@@ -10,10 +10,10 @@ extern crate panic_semihosting;
 use rt::ExceptionFrame;
 
 extern crate nrf52dk_sys;
+use nrf::_bindgen_ty_3 as Fd;
+use nrf::bsp_event_t as Event;
 use nrf::check;
 use nrf52dk_sys as nrf;
-use nrf::bsp_event_t as Event;
-use nrf::_bindgen_ty_3 as Fd;
 
 static NAME: &str = "RUST-BLE";
 
