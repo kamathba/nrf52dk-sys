@@ -328,7 +328,7 @@ unsafe extern "C" fn bsp_event_handler(event: Event::Type) {
 }
 
 unsafe extern "C" fn ble_evt_dispatch(p_ble_evt: *mut nrf::ble_evt_t) {
-    /** The Connection state module has to be fed BLE events in order to function correctly
+    /* The Connection state module has to be fed BLE events in order to function correctly
      * Remember to call ble_conn_state_on_ble_evt before calling any ble_conns_state_* functions. */
     nrf::ble_conn_state_on_ble_evt(p_ble_evt);
     nrf::pm_on_ble_evt(p_ble_evt);
@@ -499,75 +499,80 @@ unsafe extern "C" fn pm_evt_handler(p_evt: *const nrf::pm_evt_t) {
 unsafe fn on_ble_evt(p_ble_evt: *mut nrf::ble_evt_t) {
     let x = (*p_ble_evt).header.evt_id;
 
-    // We can't use a match here because the nordic mixes enum types :(
-    if x == nrf::BLE_GAP_EVTS::BLE_GAP_EVT_DISCONNECTED as u16 {
-        nrf_log_info("Disconnected.\r\n\0");
+    use nrf::{BLE_COMMON_EVTS, BLE_GAP_EVTS, BLE_GATTC_EVTS, BLE_GATTS_EVTS};
+    match x as u8 {
+        BLE_GAP_EVTS::BLE_GAP_EVT_DISCONNECTED => {
+            nrf_log_info("Disconnected.\r\n\0");
 
-        check(nrf::bsp_indication_set(
-            nrf::bsp_indication_t::BSP_INDICATE_IDLE,
-        ))
-        .unwrap();
-    } else if x == nrf::BLE_GAP_EVTS::BLE_GAP_EVT_CONNECTED as u16 {
-        nrf_log_info("Connected.\r\n\0");
-        check(nrf::bsp_indication_set(
-            nrf::bsp_indication_t::BSP_INDICATE_CONNECTED,
-        ))
-        .unwrap();
-        M_CONN_HANDLE = (*p_ble_evt).evt.gap_evt.conn_handle;
-    } else if x == nrf::BLE_GATTC_EVTS::BLE_GATTC_EVT_TIMEOUT as u16 {
-        nrf_log_info("GATT Client Timeout.\r\n\0");
-        check(nrf::sd_ble_gap_disconnect(
-            (*p_ble_evt).evt.gattc_evt.conn_handle,
-            nrf::BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION as u8,
-        ))
-        .unwrap();
-    } else if x == nrf::BLE_GATTC_EVTS::BLE_GATTC_EVT_TIMEOUT as u16 {
-        nrf_log_info("GATT Client Timeout.\r\n\0");
-        check(nrf::sd_ble_gap_disconnect(
-            (*p_ble_evt).evt.gattc_evt.conn_handle,
-            nrf::BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION as u8,
-        ))
-        .unwrap();
-    } else if x == nrf::BLE_GATTS_EVTS::BLE_GATTS_EVT_TIMEOUT as u16 {
-        nrf_log_info("GATT Server Timeout.\r\n\0");
-        check(nrf::sd_ble_gap_disconnect(
-            (*p_ble_evt).evt.gatts_evt.conn_handle,
-            nrf::BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION as u8,
-        ))
-        .unwrap();
-    } else if x == nrf::BLE_COMMON_EVTS::BLE_EVT_USER_MEM_REQUEST as u16 {
-        check(nrf::sd_ble_user_mem_reply(
-            (*p_ble_evt).evt.gattc_evt.conn_handle,
-            core::ptr::null(),
-        ))
-        .unwrap();
-    } else if x == nrf::BLE_GATTS_EVTS::BLE_GATTS_EVT_RW_AUTHORIZE_REQUEST as u16 {
-        let req = (*p_ble_evt).evt.gatts_evt.params.authorize_request;
+            check(nrf::bsp_indication_set(
+                nrf::bsp_indication_t::BSP_INDICATE_IDLE,
+            ))
+            .unwrap();
+        }
 
-        if req.type_ != nrf::BLE_GATTS_AUTHORIZE_TYPE_INVALID as u8 {
-            let op = req.request.write.op;
-            if (op == nrf::BLE_GATTS_OP_PREP_WRITE_REQ as u8)
-                || (op == nrf::BLE_GATTS_OP_EXEC_WRITE_REQ_NOW as u8)
-                || (op == nrf::BLE_GATTS_OP_EXEC_WRITE_REQ_CANCEL as u8)
-            {
-                let mut auth_reply = nrf::ble_gatts_rw_authorize_reply_params_t::default();
+        BLE_GAP_EVTS::BLE_GAP_EVT_CONNECTED => {
+            nrf_log_info("Connected.\r\n\0");
+            check(nrf::bsp_indication_set(
+                nrf::bsp_indication_t::BSP_INDICATE_CONNECTED,
+            ))
+            .unwrap();
+            M_CONN_HANDLE = (*p_ble_evt).evt.gap_evt.conn_handle;
+        }
 
-                auth_reply.type_ = if req.type_ == nrf::BLE_GATTS_AUTHORIZE_TYPE_WRITE as u8 {
-                    nrf::BLE_GATTS_AUTHORIZE_TYPE_WRITE as u8
-                } else {
-                    nrf::BLE_GATTS_AUTHORIZE_TYPE_READ as u8
-                };
+        BLE_GATTC_EVTS::BLE_GATTC_EVT_TIMEOUT => {
+            nrf_log_info("GATT Client Timeout.\r\n\0");
+            check(nrf::sd_ble_gap_disconnect(
+                (*p_ble_evt).evt.gattc_evt.conn_handle,
+                nrf::BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION as u8,
+            ))
+            .unwrap();
+        }
+        BLE_GATTS_EVTS::BLE_GATTS_EVT_TIMEOUT => {
+            nrf_log_info("GATT Server Timeout.\r\n\0");
+            check(nrf::sd_ble_gap_disconnect(
+                (*p_ble_evt).evt.gatts_evt.conn_handle,
+                nrf::BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION as u8,
+            ))
+            .unwrap();
+        }
 
-                auth_reply.params.write.gatt_status = APP_FEATURE_NOT_SUPPORTED;
+        BLE_COMMON_EVTS::BLE_EVT_USER_MEM_REQUEST => {
+            check(nrf::sd_ble_user_mem_reply(
+                (*p_ble_evt).evt.gattc_evt.conn_handle,
+                core::ptr::null(),
+            ))
+            .unwrap();
+        }
 
-                check(nrf::sd_ble_gatts_rw_authorize_reply(
-                    (*p_ble_evt).evt.gatts_evt.conn_handle,
-                    &auth_reply,
-                ))
-                .unwrap();
+        BLE_GATTS_EVTS::BLE_GATTS_EVT_RW_AUTHORIZE_REQUEST => {
+            let req = (*p_ble_evt).evt.gatts_evt.params.authorize_request;
+
+            if req.type_ != nrf::BLE_GATTS_AUTHORIZE_TYPE_INVALID as u8 {
+                let op = req.request.write.op;
+                if (op == nrf::BLE_GATTS_OP_PREP_WRITE_REQ as u8)
+                    || (op == nrf::BLE_GATTS_OP_EXEC_WRITE_REQ_NOW as u8)
+                    || (op == nrf::BLE_GATTS_OP_EXEC_WRITE_REQ_CANCEL as u8)
+                {
+                    let mut auth_reply = nrf::ble_gatts_rw_authorize_reply_params_t::default();
+
+                    auth_reply.type_ = if req.type_ == nrf::BLE_GATTS_AUTHORIZE_TYPE_WRITE as u8 {
+                        nrf::BLE_GATTS_AUTHORIZE_TYPE_WRITE as u8
+                    } else {
+                        nrf::BLE_GATTS_AUTHORIZE_TYPE_READ as u8
+                    };
+
+                    auth_reply.params.write.gatt_status = APP_FEATURE_NOT_SUPPORTED;
+
+                    check(nrf::sd_ble_gatts_rw_authorize_reply(
+                        (*p_ble_evt).evt.gatts_evt.conn_handle,
+                        &auth_reply,
+                    ))
+                    .unwrap();
+                }
             }
         }
-    } else {
-        // No implementation needed.
+        _ => {
+            unimplemented!();
+        }
     }
 }
