@@ -14,8 +14,7 @@ This project requires the following tools before building:
 | :---------------- | :------------------ | :---------------------------------------------------------------------------------------- |
 | Clang             | 3.9                 | [debian/ubuntu](http://apt.llvm.org/) or [source](http://releases.llvm.org/download.html) |
 | arm-none-eabi-gcc | 6.1                 | [Current Version](https://developer.arm.com/open-source/gnu-toolchain/gnu-rm/downloads)   |
-| Rust (nightly)    | nightly-2017-11-15  | [rustup.rs](https://www.rustup.rs/)                                                       |
-| Bindgen           | 0.31.3              | `cargo install bindgen --vers 0.31.3`                                                     |
+| rustup            | latest              | [rustup.rs](https://www.rustup.rs/)                                                       |
 
 If you would like more detailed installation instructions, please look at [The Detailed Setup Instructions](./SETUP.md).
 

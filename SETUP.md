@@ -49,53 +49,26 @@ sudo mv ./gcc-arm-none-eabi-6-2017-q1-update /opt
 export PATH=/opt/gcc-arm-none-eabi-6-2017-q1-update/bin
 ```
 
-## 4a. Clean install of Rust
-
-If you already have Rust installed, please skip ahead to step 4b.
-
-This step will install Rust and set the default toolchain to the nightly.
-
-Note: After performing this step, you may need to open a new terminal window for Rust to be added to your path.
+Alternatively, install using apt:
 
 ```bash
-curl https://sh.rustup.rs -sSf > install_rust.sh
-/bin/bash /install_rust.sh -y --default-toolchain nightly-2017-06-12
+sudo apt install gcc-arm-none-eabi
 ```
 
-## 4b. Rustup already installed
+## 4. Install rustup
 
-If you already have Rust installed via Rustup, you only need to install the correct toolchain version.
+We use a rust-toolchain to select a toolchain version. You may need to add a target for the respective version of the rust toolchain
 
-```bash
-rustup install nightly-2017-06-12
-rustup default nightly-2017-06-12
+```
+rustup target add thumbv7em-none-eabihf
 ```
 
-## 5. Install Xargo and Bindgen
-
-Xargo makes compiling embedded crates easier. Bindgen automatically generates Rust bindings from C/C++ code.
-
-```bash
-cargo install xargo --vers 0.3.8
-cargo install bindgen --vers 0.31.3
-```
-
-## 6. Install Rust Core Source
-
-It is necessary to rebuild the `core` component of Rust for our target. Don't worry, `xargo` takes care of this, we just need to provide it Rust's source code.
-
-```bash
-rustup component add rust-src
-```
-
-## 7. Download the `nrf52dk-sys` repo, and build an example
+## 5. Download the `nrf52dk-sys` repo, and build an example
 
 You made it! Now to verify the install went well, lets checkout the `nrf52dk-sys` crate, and build one of the examples.
 
 ```bash
-git clone --recursive https://github.com/jamesmunns/nrf52dk-sys
-cd nrf52dk-sys
-xargo build --example blinky
+cargo build --example ble_app_template
 ```
 
 If everything went well, the last lines on your terminal should look like this:
@@ -105,7 +78,7 @@ Compiling nrf52dk-sys v0.1.1 (file:///nrf52dk-sys)
  Finished dev [unoptimized + debuginfo] target(s) in 25.48 secs
 ```
 
-## 8. Install nRF52 specific components
+## 6. Install nRF52 specific components
 
 The above steps verify you can compile your firmware. Before interacting with actual hardware, you will need to download the following components. Instructions for what to do with these are on the [Main README](./README.md).
 
