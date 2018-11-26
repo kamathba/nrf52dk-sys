@@ -11,8 +11,7 @@ use rt::ExceptionFrame;
 extern crate nrf52dk_sys;
 use nrf52dk_sys as nrf;
 
-entry!(main);
-
+#[entry]
 fn main() -> ! {
     unsafe {
         nrf::bsp_board_leds_init();
@@ -31,13 +30,13 @@ fn main() -> ! {
     }
 }
 
-exception!(HardFault, hard_fault);
-fn hard_fault(ef: &ExceptionFrame) -> ! {
+#[exception]
+fn HardFault(ef: &ExceptionFrame) -> ! {
     panic!("HardFault at {:#?}", ef);
 }
 
-exception!(*, default_handler);
-fn default_handler(irqn: i16) {
+#[exception]
+fn DefaultHandler(irqn: i16) {
     panic!("Unhandled exception (IRQn = {})", irqn);
 }
 
